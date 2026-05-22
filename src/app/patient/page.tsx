@@ -2,25 +2,43 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import ConsentManager from '@/components/patient/ConsentManager';
 import PatientRiskAlerts from '@/components/patient/PatientRiskAlerts';
 import PatientRecordsView from '@/components/patient/PatientRecordsView';
-import { mockDiagnoses, mockPrescriptions, mockLabReports } from '@/lib/mockData';
-import { LogOut } from 'lucide-react';
+import { LogOut, Loader2 } from 'lucide-react';
 
 export default function PatientDashboard() {
   const { authState, logout } = useAuth();
   const router = useRouter();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!authState.isAuthenticated || authState.role !== 'patient') {
       router.push('/login?role=patient');
+      return;
     }
+
+    // Fetch from Supabase API
+    fetch('/api/patient-data')
+      .then(res => res.json())
+      .then(result => {
+        if (result.error) {
+          console.error("API Error:", result.error);
+        } else {
+          setData(result);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Fetch error:", err);
+        setLoading(false);
+      });
   }, [authState, router]);
 
   if (!authState.isAuthenticated || authState.role !== 'patient') {
-    return null; // or a loading spinner
+    return null;
   }
 
   const handleLogout = () => {
@@ -41,18 +59,31 @@ export default function PatientDashboard() {
           </button>
         </div>
 
-        {/* High Risk Alerts */}
-        <PatientRiskAlerts diagnoses={mockDiagnoses} />
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-indigo-600">
+            <Loader2 className="animate-spin mb-4" size={48} />
+            <p className="text-lg font-bold">Loading Your Health Records...</p>
+          </div>
+        ) : data ? (
+          <>
+            {/* High Risk Alerts */}
+            <PatientRiskAlerts diagnoses={data.diagnoses} />
 
-        {/* Consent Manager */}
-        <ConsentManager />
+            {/* Consent Manager */}
+            <ConsentManager />
 
-        {/* Comprehensive Patient Records View */}
-        <PatientRecordsView 
-          diagnoses={mockDiagnoses}
-          prescriptions={mockPrescriptions}
-          reports={mockLabReports}
-        />
+            {/* Comprehensive Patient Records View */}
+            <PatientRecordsView 
+              diagnoses={data.diagnoses}
+              prescriptions={data.prescriptions}
+              reports={data.labReports}
+            />
+          </>
+        ) : (
+          <div className="p-8 text-center bg-red-50 text-red-600 rounded-2xl border border-red-200 max-w-3xl mx-auto">
+            Failed to load health records. Ensure Supabase tables are created.
+          </div>
+        )}
 
       </div>
     </div>

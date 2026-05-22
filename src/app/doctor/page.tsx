@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import PatientHeader from '@/components/doctor/PatientHeader';
 import VitalsDashboard from '@/components/doctor/VitalsDashboard';
 import MedicalStatus from '@/components/doctor/MedicalStatus';
@@ -10,29 +10,39 @@ import DiagnosisTracker from '@/components/doctor/DiagnosisTracker';
 import PastHistoryTimeline from '@/components/doctor/PastHistoryTimeline';
 import LabReports from '@/components/doctor/LabReports';
 import EPrescription from '@/components/doctor/EPrescription';
-import {
-  mockPatient,
-  mockVitals,
-  mockMedicalStatus,
-  mockDiagnoses,
-  mockMedicalHistory,
-  mockLabReports,
-  mockPrescriptions
-} from '@/lib/mockData';
-import { LogOut } from 'lucide-react';
+import { LogOut, Loader2 } from 'lucide-react';
 
 export default function DoctorDashboard() {
   const { authState, logout } = useAuth();
   const router = useRouter();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!authState.isAuthenticated || authState.role !== 'doctor') {
       router.push('/login?role=doctor');
+      return;
     }
+
+    // Fetch from Supabase API
+    fetch('/api/patient-data')
+      .then(res => res.json())
+      .then(result => {
+        if (result.error) {
+          console.error("API Error:", result.error);
+        } else {
+          setData(result);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Fetch error:", err);
+        setLoading(false);
+      });
   }, [authState, router]);
 
   if (!authState.isAuthenticated || authState.role !== 'doctor') {
-    return null; // or a loading spinner
+    return null;
   }
 
   const handleLogout = () => {
@@ -53,35 +63,44 @@ export default function DoctorDashboard() {
           </button>
         </div>
 
-        {/* Header Profile */}
-        <PatientHeader patient={mockPatient} />
-
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Left Column */}
-          <div className="lg:col-span-2 flex flex-col gap-6">
-            <VitalsDashboard vitals={mockVitals} />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[400px]">
-              <MedicalStatus status={mockMedicalStatus} />
-              <DiagnosisTracker diagnoses={mockDiagnoses} />
-            </div>
-            <div className="h-[400px]">
-              <EPrescription pastPrescriptions={mockPrescriptions} />
-            </div>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-blue-600">
+            <Loader2 className="animate-spin mb-4" size={48} />
+            <p className="text-lg font-bold">Loading Patient Records from Database...</p>
           </div>
+        ) : data ? (
+          <>
+            <PatientHeader patient={data.patient} />
 
-          {/* Right Column */}
-          <div className="flex flex-col gap-6">
-            <div className="h-[400px]">
-              <PastHistoryTimeline history={mockMedicalHistory} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              <div className="lg:col-span-2 flex flex-col gap-6">
+                <VitalsDashboard vitals={data.vitals} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[400px]">
+                  <MedicalStatus status={data.medicalStatus} />
+                  <DiagnosisTracker diagnoses={data.diagnoses} />
+                </div>
+                <div className="h-[400px]">
+                  <EPrescription pastPrescriptions={data.prescriptions} />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-6">
+                <div className="h-[400px]">
+                  <PastHistoryTimeline history={data.medicalHistory} />
+                </div>
+                <div className="flex-1 min-h-[400px]">
+                  <LabReports reports={data.labReports} />
+                </div>
+              </div>
+              
             </div>
-            <div className="flex-1 min-h-[400px]">
-              <LabReports reports={mockLabReports} />
-            </div>
+          </>
+        ) : (
+          <div className="p-8 text-center bg-red-50 text-red-600 rounded-2xl border border-red-200">
+            Failed to load patient records. Ensure Supabase tables are created.
           </div>
-          
-        </div>
+        )}
 
       </div>
     </div>
