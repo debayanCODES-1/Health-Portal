@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Health Portal - Technical Presentation</title>
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/dracula.min.css" id="theme">
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+		<style>
+			.reveal h1, .reveal h2, .reveal h3 {
+				text-transform: none;
+			}
+			.reveal pre code {
+				max-height: 500px;
+			}
+			.reveal section img {
+				border: none;
+				box-shadow: none;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section data-markdown data-separator="^\n---\n$" data-separator-vertical="^\n--\n$">
+					<textarea data-template>
+# Health Portal
+### Technical Architecture & Systems Engineering Overview
+
+---
+
+## Health Portal Overview
+* **System Purpose**: Secure, longitudinal patient medical record management.
+* **Core Technology Stack**: Next.js App Router, Prisma ORM, PostgreSQL database, Redis session cache, Stripe billing, Google Gemini API.
+* **Key Architectures**: Zero-trust column encryption, pessimistic concurrency scheduling, idempotent payment webhooks, and instruction-isolated clinical triage.
+
+---
+
+## System Architecture & Data Flow
+* **Gateway**: Next.js App Router handles middleware authentication and request routing.
+* **Storage Layer**: PostgreSQL primary relational datastore with strict foreign-key integrity.
+* **Cache Layer**: Redis cluster handles distributed locks, response payload caching, and session token blacklist storage.
+* **Services**: Google Gemini API performs symptom triage; Stripe API handles checkout session completions.
+
+---
+
+## Zero-Trust Security - Column Encryption
+* **Column-Level Encryption (CLE)**: Encrypts `ssn`, `contactInfo`, and `medicalHistory` in the `PatientRecord` model.
+* **Algorithm**: AES-256-GCM with a unique initialization vector (IV) and authentication tag per cell write.
+* **Prisma Extension**: Automatically decrypts on read queries and encrypts on write operations.
+* **Fail-Fast Boot Validator**: The application terminates immediately if the `MASTER_KEY` environment variable is missing, is not a valid 64-character hexadecimal string, or fails to decode to a 32-byte key.
+
+---
+
+## Zero-Trust Security - Auth & Revocation
+* **Dual-Token Auth**:
+  * **Access Token**: Short-lived (300 seconds) JWT token stored in-memory on the client to block XSS retrieval.
+  * **Refresh Token**: Long-lived (7 days) JWT token sent via an HTTP-only, secure, `SameSite=Strict` cookie containing a unique JWT ID (`jti`).
+* **Session Revocation**:
+  * On logout or password reset, the token's `jti` is extracted.
+  * The `jti` is written to the Redis blacklist with a TTL equal to the token's remaining lifetime.
+  * The refresh endpoint validates the incoming token's `jti` against Redis, rejecting blacklisted sessions.
+
+---
+
+## High-Concurrency Slot Booking
+* **Pessimistic Lock Strategy**: Interactive transactions reserve slots using raw SQL:
+  ```sql
+  SELECT id, status FROM appointments
+  WHERE doctor_id = $1 AND timeslot = $2
+  FOR UPDATE NOWAIT
+  ```
+* **Immediate Fail**: Using `NOWAIT` prevents thread hanging by instantly failing transaction attempts if a row-lock is held.
+* **Backoff Retry**: Lock timeouts (`55P03`), serialization failures (`40001`), and unique violations (`23505`) trigger exponential retries (up to 3 retries, base delay 100ms, doubling on each attempt).
+
+---
+
+## Payments & Idempotency Layer
+* **Idempotency Wrapper**: Enforces the `X-Idempotency-Key` (UUIDv4) header on POST/PUT/PATCH endpoints.
+* **Lock Processing**: Sets a Redis lock with a 30-second expiry to block simultaneous duplicate requests.
+* **Output Caching**: Caches completed responses in Redis for 24 hours. Subsequent duplicate requests serve cached results directly, appending the `X-Cache-Lookup: HIT` header.
+* **Stripe Webhook**: Cryptographically verifies signatures, enforces a 5-minute timestamp drift threshold, and executes updates within an atomic database transaction.
+
+---
+
+## AI Safety Triage Pipeline
+* **Input Sanitization**: Scans patient queries for prompt injection keywords, immediately rejecting compromised payloads.
+* **XML Schema Isolation**: Separates hardcoded system instructions and user inputs using tag blocks:
+  ```text
+  <clinical_guidelines>
+  [System boundaries and safety instructions]
+  </clinical_guidelines>
+  <patient_input>
+  [Sanitized user text]
+  </patient_input>
+  ```
+* **Output Constraints**: Gemini is restricted to JSON responses, which are validated using a strict Zod schema.
+* **Enforced Legal Notices**: Automatically appends emergency disclaimers and overrides parameters to require a doctor consultation if warning signs are detected.
+
+---
+
+## Quality Assurance & Verification Gates
+* **Linter Policies**: Enforces strict TypeScript-ESLint validation with zero allowed warnings.
+* **Coverage Gates**: The CI/CD pipeline runs unit, integration, and fuzz tests under Jest, enforcing a 90% coverage threshold across lines, functions, statements, and branches.
+* **Automated Migrations**: Setup scripts synchronize schema definitions and seed data automatically.
+					</textarea>
+				</section>
+			</div>
+		</div>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/markdown/markdown.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/notes/notes.min.js"></script>
+		<script>
+			Reveal.initialize({
+				hash: true,
+				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
+			});
+		</script>
+	</body>
+</html>

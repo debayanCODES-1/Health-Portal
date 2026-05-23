@@ -176,7 +176,10 @@ Symptom triage uses Google's Gemini API to classify patient queries.
 ├── docker-compose.yml                  # Docker services (Postgres, Redis, setup script)
 ├── package.json                        # Dependencies and script definitions
 ├── tsconfig.json                       # TypeScript compiler options
-└── jest.config.js                      # Test suite parameters
+├── jest.config.js                      # Test suite parameters
+└── ppt/                                # Technical presentation slides
+    ├── presentation.md                 # Slide contents in Markdown format
+    └── presentation.html               # Browser-loadable Reveal.js HTML slideshow
 ```
 
 ---
