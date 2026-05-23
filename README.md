@@ -33,7 +33,7 @@ Security controls are implemented directly at the database and application level
   1. Missing.
   2. Not a valid 64-character hexadecimal string.
   3. Not decoding to exactly 32 bytes (256 bits).
-* **Test Validation**: The test suite in [security.test.ts](file:///d:/PROJECT/healthprotal/src/app/api/auth/security.test.ts) queries the database using raw SQL to verify that stored data is in the `iv:tag:ciphertext` format and is not readable in plain text.
+* **Test Validation**: The test suite in [security.test.ts](file:///d:/PROJECT/healthprotal/src/app/api/auth/security.test.ts) queries the database using raw SQL to verify that stored data is in the `iv:tag:ciphertext` format, asserts token expiration boundaries, validates JTI blacklisting, and verifies logout and password-reset session invalidations.
 
 ### Dual-Token Session Management
 
