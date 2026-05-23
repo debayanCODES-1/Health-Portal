@@ -25,6 +25,7 @@ graph TD
 Security controls are implemented directly at the database and application levels. The database structure is configured in [schema.prisma](file:///d:/PROJECT/healthprotal/prisma/schema.prisma).
 
 ### Column-Level Encryption (CLE)
+
 * **Algorithm**: AES-256-GCM (Galois/Counter Mode) with a unique initialization vector (IV) and authentication tag per cell write.
 * **Target Columns**: The columns `ssn`, `contactInfo`, and `medicalHistory` within the `PatientRecord` model are automatically encrypted on database write and decrypted on database read.
 * **Prisma Extensions**: CLE is handled transparently by the ORM extension in [prisma.ts](file:///d:/PROJECT/healthprotal/src/lib/prisma.ts) using the utilities defined in [encryption.ts](file:///d:/PROJECT/healthprotal/src/lib/encryption.ts).
@@ -35,10 +36,12 @@ Security controls are implemented directly at the database and application level
 * **Test Validation**: The test suite in [security.test.ts](file:///d:/PROJECT/healthprotal/src/app/api/auth/security.test.ts) queries the database using raw SQL to verify that stored data is in the `iv:tag:ciphertext` format and is not readable in plain text.
 
 ### Dual-Token Session Management
+
 1. **Access Token**: Short-lived (300 seconds validity) token stored in client-side memory to minimize XSS exposure.
 2. **Refresh Token**: Long-lived (7 days validity) token sent as an HTTP-only, secure, `SameSite=Strict` cookie, signed with a unique JWT ID (`jti`) and verified using `JWT_REFRESH_SECRET`.
 
 ### Token Revocation and Blacklisting
+
 * **Logout Process**: Handled by the [logout API route](file:///d:/PROJECT/healthprotal/src/app/api/auth/logout/route.ts). The server extracts the `jti` from the user's refresh token.
 * **Redis Storage**: The `jti` is stored in Redis via [redis.ts](file:///d:/PROJECT/healthprotal/src/lib/redis.ts) as a revoked identifier, with a TTL set to the token's remaining validity duration.
 * **Verification Gate**: The [refresh API route](file:///d:/PROJECT/healthprotal/src/app/api/auth/refresh/route.ts) inspects Redis on every token swap. If the `jti` is present in the blacklist, the server clears cookies and returns a `401 Unauthorized` response.
@@ -50,17 +53,22 @@ Security controls are implemented directly at the database and application level
 The booking system prevents scheduling conflicts and race conditions when multiple users attempt to reserve the same slot.
 
 ### Pessimistic Row Locking
+
 * **Implementation**: The [booking API route](file:///d:/PROJECT/healthprotal/src/app/api/appointments/book/route.ts) reserves slots within an interactive database transaction using raw SQL.
 * **SQL Query**:
+
   ```sql
   SELECT id, status FROM appointments
   WHERE doctor_id = $1 AND timeslot = $2
   FOR UPDATE NOWAIT
   ```
+
   Using `NOWAIT` ensures that if another transaction has locked the row, the query fails immediately with database code `55P03` instead of waiting.
 
 ### Retry Backoff Logic
+
 If a lock conflict (`55P03`), serialization failure (`40001`), or unique constraint violation (`23505` / `P2002`) occurs:
+
 * **Max Retries**: 3 (total of 4 execution attempts).
 * **Base Delay**: 100ms.
 * **Backoff Equation**: `delay = baseDelay * (2^attempt)`.
@@ -74,6 +82,7 @@ If a lock conflict (`55P03`), serialization failure (`40001`), or unique constra
 Payments are integrated using Stripe Checkout. The system uses idempotency controls to prevent duplicate transactions.
 
 ### Global Idempotency Middleware
+
 * **Route Decorator**: The higher-order function `withIdempotency` in [idempotency.ts](file:///d:/PROJECT/healthprotal/src/lib/idempotency.ts) wraps state-modifying endpoints.
 * **Header Requirement**: The client must provide a UUIDv4 in the `X-Idempotency-Key` header.
 * **Redis Lock Flow**:
@@ -82,6 +91,7 @@ Payments are integrated using Stripe Checkout. The system uses idempotency contr
   3. If the request is new, it executes the route, caches the output in Redis, and appends `X-Cache-Lookup: MISS`.
 
 ### Webhook Verification
+
 * **Endpoint**: Handled in the [payments webhook route](file:///d:/PROJECT/healthprotal/src/app/api/payments/webhook/route.ts).
 * **Security Checks**: Cryptographic signatures are verified using the Stripe SDK. Timestamp values are checked to prevent replay attacks (maximum drift of 5 minutes).
 * **Database Updates**: On verification, an atomic transaction updates the appointment status to `PAID` and transaction status to `COMPLETED`. Database write errors return an HTTP `500` response to trigger Stripe webhooks retries.
@@ -94,11 +104,14 @@ Payments are integrated using Stripe Checkout. The system uses idempotency contr
 Symptom triage uses Google's Gemini API to classify patient queries.
 
 ### Pre-Processing Input Sanitization
+
 * **Keyword Matching**: Incoming queries in the [triage API route](file:///d:/PROJECT/healthprotal/src/app/api/triage/route.ts) are scanned for injection keywords (`ignore`, `bypass`, `override`, `disregard`, `forget`, `roleplay`, `act as`, `you are now`).
 * **Immediate Rejection**: Queries containing these keywords are rejected without calling the Gemini API.
 
 ### XML Tag Isolation
+
 * **Instruction Safety**: System rules are isolated from user inputs by wrapping prompt content in XML tags:
+
   ```text
   <clinical_guidelines>
   [System boundaries and safety instructions]
@@ -109,8 +122,10 @@ Symptom triage uses Google's Gemini API to classify patient queries.
   ```
 
 ### Schema Enforcing and Disclaimer Middleware
+
 * **JSON Format**: Gemini is set to return JSON matching a configured Zod schema.
 * **Zod Schema**:
+
   ```typescript
   const TriageResponseSchema = z.object({
     triage_level: z.enum(['low', 'medium', 'high']),
@@ -119,6 +134,7 @@ Symptom triage uses Google's Gemini API to classify patient queries.
     disclaimer: z.string()
   });
   ```
+
 * **Enforced Disclaimers**: If `requires_doctor` is true or emergency keywords are matched, the middleware sets `requires_doctor: true` and appends a mandatory legal disclaimer.
 * **Fuzz Testing**: Verified in [triage.test.ts](file:///d:/PROJECT/healthprotal/src/app/api/triage/triage.test.ts) using 20 injection strings and 20 critical emergency cases.
 
@@ -168,10 +184,12 @@ Symptom triage uses Google's Gemini API to classify patient queries.
 ## 7. Installation and Local Setup
 
 ### System Prerequisites
+
 * Node.js (v20 or higher)
 * Docker and Docker Compose
 
 ### Booting Development Services
+
 Run the following commands in the root directory:
 
 ```bash
@@ -181,10 +199,13 @@ npm install
 # Run database, caching services, and initialize environment variables
 docker-compose up --build
 ```
+
 *Note: The setup container automatically runs [setup-env.js](file:///d:/PROJECT/healthprotal/scripts/setup-env.js) to configure the local `.env` file and executes `prisma db push` on PostgreSQL.*
 
 ### Manual Environment File (.env)
+
 If services are executed locally without Docker, define a `.env` file:
+
 ```env
 DATABASE_URL="postgresql://postgres:postgres_password@localhost:5432/health_portal?schema=public"
 REDIS_URL="redis://localhost:6379"
@@ -201,6 +222,7 @@ STRIPE_WEBHOOK_SECRET="whsec_..."
 ## 8. Verification and Quality Gates
 
 ### Running Tests Locally
+
 Ensure Postgres and Redis containers are healthy, then execute:
 
 ```bash
@@ -212,11 +234,15 @@ npm test
 ```
 
 ### GitHub Actions Pipeline
+
 The pipeline defined in [production-gate.yml](file:///d:/PROJECT/healthprotal/.github/workflows/production-gate.yml) runs on every push and pull request. It enforces:
+
 1. Strict ESLint checking with `--max-warnings=0`.
 2. Database schema validation and migrations.
 3. Test suite coverage limits under Jest:
+
    ```yaml
    npx jest --coverage --coverageThreshold='{"global":{"branches":90,"functions":90,"lines":90,"statements":90}}'
    ```
+
    If code coverage drops below the 90% threshold for branches, functions, lines, or statements, the build gate fails.
