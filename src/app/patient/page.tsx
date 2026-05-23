@@ -7,11 +7,18 @@ import ConsentManager from '@/components/patient/ConsentManager';
 import PatientRiskAlerts from '@/components/patient/PatientRiskAlerts';
 import PatientRecordsView from '@/components/patient/PatientRecordsView';
 import { LogOut, Loader2 } from 'lucide-react';
+import { Diagnosis, Prescription, LabReport } from '@/lib/mockData';
+
+interface PatientDashboardData {
+  diagnoses: Diagnosis[];
+  prescriptions: Prescription[];
+  labReports: LabReport[];
+}
 
 export default function PatientDashboard() {
   const { authState, logout } = useAuth();
   const router = useRouter();
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<PatientDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

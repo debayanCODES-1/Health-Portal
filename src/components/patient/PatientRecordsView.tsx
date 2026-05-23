@@ -91,7 +91,7 @@ export default function PatientRecordsView({ diagnoses, prescriptions, reports }
                   </ul>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-xs font-bold text-gray-500 uppercase">Doctor's Notes: </span>
+                  <span className="text-xs font-bold text-gray-500 uppercase">Doctor&apos;s Notes: </span>
                   <span className="text-sm text-gray-700 italic">{pr.notes}</span>
                 </div>
               </div>

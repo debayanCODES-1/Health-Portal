@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Diagnosis } from '@/lib/mockData';
 import { Stethoscope, ActivitySquare, ShieldCheck, Archive } from 'lucide-react';
-import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 interface DiagnosisTrackerProps {

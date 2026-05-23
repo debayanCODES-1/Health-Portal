@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { Shield, CheckCircle2, XCircle, Building2, User } from 'lucide-react';
-import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 type ConsentEntity = {

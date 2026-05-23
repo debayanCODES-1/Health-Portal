@@ -11,11 +11,22 @@ import PastHistoryTimeline from '@/components/doctor/PastHistoryTimeline';
 import LabReports from '@/components/doctor/LabReports';
 import EPrescription from '@/components/doctor/EPrescription';
 import { LogOut, Loader2 } from 'lucide-react';
+import { Patient, Vitals, MedicalStatus as MedicalStatusType, Diagnosis, MedicalHistoryEvent, LabReport, Prescription, mockVitals, mockMedicalStatus } from '@/lib/mockData';
+
+interface DashboardData {
+  patient: Patient;
+  vitals: Vitals | null;
+  medicalStatus: MedicalStatusType | null;
+  diagnoses: Diagnosis[];
+  medicalHistory: MedicalHistoryEvent[];
+  labReports: LabReport[];
+  prescriptions: Prescription[];
+}
 
 export default function DoctorDashboard() {
   const { authState, logout } = useAuth();
   const router = useRouter();
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -75,9 +86,9 @@ export default function DoctorDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
               <div className="lg:col-span-2 flex flex-col gap-6">
-                <VitalsDashboard vitals={data.vitals} />
+                <VitalsDashboard vitals={data.vitals || mockVitals} />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[400px]">
-                  <MedicalStatus status={data.medicalStatus} />
+                  <MedicalStatus status={data.medicalStatus || mockMedicalStatus} />
                   <DiagnosisTracker diagnoses={data.diagnoses} />
                 </div>
                 <div className="h-[400px]">

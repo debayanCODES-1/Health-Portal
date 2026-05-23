@@ -1,0 +1,147 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  DOCTOR
+  PATIENT
+  ADMIN
+}
+
+model User {
+  id                    String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                 String          @unique
+  password              String
+  name                  String
+  role                  Role
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  
+  patientRecord         PatientRecord?
+  appointmentsAsDoctor  Appointment[]   @relation("DoctorAppointments")
+  appointmentsAsPatient Appointment[]   @relation("PatientAppointments")
+
+  @@map("users")
+}
+
+model PatientRecord {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String          @unique @map("user_id") @db.Uuid
+  user           User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  abhaId         String          @unique @map("abha_id")
+  name           String
+  age            Int
+  bloodGroup     String          @map("blood_group")
+  ssn            String?         @map("ssn")
+  contactInfo    String?         @map("contact_info")
+  medicalHistory String?         @map("medical_history")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz
+
+  vitals         Vitals[]
+  medicalStatus  MedicalStatus?
+  diagnoses      Diagnosis[]
+  medicalHistoryRecords MedicalHistory[]
+  labReports     LabReport[]
+  prescriptions  Prescription[]
+
+  @@map("patients")
+}
+
+model Vitals {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  patientId     String        @map("patient_id") @db.Uuid
+  patient       PatientRecord @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  bloodSugar    Int?          @map("blood_sugar")
+  heartRate     Int?          @map("heart_rate")
+  bloodPressure String?       @map("blood_pressure")
+  bmi           Decimal?      @db.Decimal(4, 1)
+  spO2          Int?          @map("sp_o2")
+  lastUpdated   DateTime      @default(now()) @map("last_updated") @db.Timestamptz
+
+  @@map("vitals")
+}
+
+model MedicalStatus {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  patientId         String        @unique @map("patient_id") @db.Uuid
+  patient           PatientRecord @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  activeMedications String[]      @map("active_medications")
+  knownAllergies    String[]      @map("known_allergies")
+
+  @@map("medical_status")
+}
+
+model Diagnosis {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  patientId     String        @map("patient_id") @db.Uuid
+  patient       PatientRecord @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  condition     String
+  icd10         String
+  status        String        // 'Active', 'Inactive', 'Monitoring'
+  diagnosedDate DateTime      @map("diagnosed_date") @db.Date
+
+  @@map("diagnoses")
+}
+
+model MedicalHistory {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  patientId       String        @map("patient_id") @db.Uuid
+  patient         PatientRecord @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  date            DateTime      @db.Date
+  hospitalName    String        @map("hospital_name")
+  event           String
+  attendingDoctor String        @map("attending_doctor")
+
+  @@map("medical_history")
+}
+
+model LabReport {
+  id        String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  patientId String        @map("patient_id") @db.Uuid
+  patient   PatientRecord @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  date      DateTime      @db.Date
+  title     String
+  summary   String
+
+  @@map("lab_reports")
+}
+
+model Prescription {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  patientId   String        @map("patient_id") @db.Uuid
+  patient     PatientRecord @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  date        DateTime      @db.Date
+  medications String[]
+  notes       String?
+
+  @@map("prescriptions")
+}
+
+model Appointment {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  doctorId     String        @map("doctor_id") @db.Uuid
+  doctor       User          @relation("DoctorAppointments", fields: [doctorId], references: [id], onDelete: Restrict)
+  patientId    String?       @map("patient_id") @db.Uuid
+  patient      User?         @relation("PatientAppointments", fields: [patientId], references: [id], onDelete: Restrict)
+  timeslot     DateTime      @map("timeslot") @db.Timestamptz
+  status       String        @default("AVAILABLE") // 'AVAILABLE', 'BOOKED', 'CANCELLED'
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  transactions Transaction[]
+
+  @@unique([doctorId, timeslot])
+  @@map("appointments")
+}
+
+model Transaction {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  appointmentId String      @map("appointment_id") @db.Uuid
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  amount        Decimal     @db.Decimal(10, 2)
+  status        String      @default("PENDING") // 'PENDING', 'COMPLETED', 'FAILED'
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("transactions")
+}

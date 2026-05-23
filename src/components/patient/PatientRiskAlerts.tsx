@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Diagnosis } from '@/lib/mockData';
-import { AlertOctagon, HeartPulse, ShieldAlert } from 'lucide-react';
+import { HeartPulse, ShieldAlert } from 'lucide-react';
 
 interface PatientRiskAlertsProps {
   diagnoses: Diagnosis[];
@@ -43,7 +43,7 @@ export default function PatientRiskAlerts({ diagnoses }: PatientRiskAlertsProps)
           return (
             <div key={idx} className={`p-5 rounded-2xl border ${risk.border} ${risk.bg} flex gap-4 items-start`}>
               <div className={`mt-1 bg-white p-2 rounded-full shadow-sm ${risk.color}`}>
-                <AlertOctagon size={24} />
+                <Icon size={24} />
               </div>
               <div>
                 <h4 className={`text-lg font-bold ${risk.color} mb-1`}>{risk.title}</h4>
