@@ -1,4 +1,4 @@
-# Health Portal - Secure Longitudinal Patient Record System
+# Health Portal - Secured Patient Record System
 
 This repository contains the Health Portal application, a Next.js system designed for secure, longitudinal patient medical record management. The project uses PostgreSQL as the primary database, Redis for session and idempotency caching, Prisma as the ORM, and Google's Gemini API for symptom triage classification.
 
