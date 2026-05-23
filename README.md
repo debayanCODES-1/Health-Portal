@@ -236,16 +236,4 @@ npm run lint
 npm test
 ```
 
-### GitHub Actions Pipeline
 
-The pipeline defined in [production-gate.yml](file:///d:/PROJECT/healthprotal/.github/workflows/production-gate.yml) runs on every push and pull request. It enforces:
-
-1. Strict ESLint checking with `--max-warnings=0`.
-2. Database schema validation and migrations.
-3. Test suite coverage limits under Jest:
-
-   ```yaml
-   npx jest --coverage --coverageThreshold='{"global":{"branches":90,"functions":90,"lines":90,"statements":90}}'
-   ```
-
-   If code coverage drops below the 90% threshold for branches, functions, lines, or statements, the build gate fails.
