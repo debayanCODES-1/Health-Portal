@@ -13,7 +13,7 @@ export default function Home() {
 
       <div className="max-w-4xl w-full relative z-10 text-center">
         <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 tracking-tight mb-6">
-          Longitudinal <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Patient Brief</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Patient Brief</span>
         </h1>
         <p className="text-lg md:text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
           Secure, unified access to patient medical histories. Select your portal to continue.

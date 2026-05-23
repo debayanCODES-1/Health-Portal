@@ -7,8 +7,8 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Longitudinal Patient Brief",
-  description: "Secure healthcare MVP platform",
+  title: "Patient Brief",
+  description: "Secure patient medical history tracking",
 };
 
 export default function RootLayout({

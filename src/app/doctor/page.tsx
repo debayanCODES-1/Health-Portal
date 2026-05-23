@@ -29,13 +29,7 @@ export default function DoctorDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!authState.isAuthenticated || authState.role !== 'doctor') {
-      router.push('/login?role=doctor');
-      return;
-    }
-
-    // Fetch from Supabase API
+  const fetchData = () => {
     fetch('/api/patient-data')
       .then(res => res.json())
       .then(result => {
@@ -50,6 +44,14 @@ export default function DoctorDashboard() {
         console.error("Fetch error:", err);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    if (!authState.isAuthenticated || authState.role !== 'doctor') {
+      router.push('/login?role=doctor');
+      return;
+    }
+    fetchData();
   }, [authState, router]);
 
   if (!authState.isAuthenticated || authState.role !== 'doctor') {
@@ -87,12 +89,16 @@ export default function DoctorDashboard() {
               
               <div className="lg:col-span-2 flex flex-col gap-6">
                 <VitalsDashboard vitals={data.vitals || mockVitals} />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[400px]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:h-[400px]">
                   <MedicalStatus status={data.medicalStatus || mockMedicalStatus} />
                   <DiagnosisTracker diagnoses={data.diagnoses} />
                 </div>
-                <div className="h-[400px]">
-                  <EPrescription pastPrescriptions={data.prescriptions} />
+                <div className="h-[500px] md:h-[400px]">
+                  <EPrescription 
+                    patientId={data.patient.id} 
+                    pastPrescriptions={data.prescriptions} 
+                    onPrescriptionAdded={fetchData} 
+                  />
                 </div>
               </div>
 

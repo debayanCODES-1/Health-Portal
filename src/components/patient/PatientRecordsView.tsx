@@ -23,7 +23,7 @@ export default function PatientRecordsView({ diagnoses, prescriptions, reports }
   ];
 
   return (
-    <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-gray-100 max-w-3xl mx-auto mt-6">
+    <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-4 md:p-8 shadow-xl border border-gray-100 max-w-3xl mx-auto mt-6">
       <div className="flex flex-wrap gap-2 mb-6 bg-gray-100/50 p-1.5 rounded-2xl">
         {tabs.map((tab) => {
           const Icon = tab.icon;
